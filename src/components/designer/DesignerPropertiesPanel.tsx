@@ -12,13 +12,13 @@ import { Separator } from '@/components/ui/separator';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { DesignerGradientPicker, GradientConfig, gradientConfigToFabric } from './DesignerGradientPicker';
 import { Gradient } from 'fabric';
-import { 
+import {
   Bold, Italic, Underline, AlignLeft, AlignCenter, AlignRight,
   Strikethrough, ChevronDown, Palette, CaseSensitive, WrapText, Scaling
 } from 'lucide-react';
 
 const GOOGLE_FONTS = [
-  'Arial', 'Helvetica', 'Times New Roman', 'Georgia', 'Verdana', 
+  'Arial', 'Helvetica', 'Times New Roman', 'Georgia', 'Verdana',
   'Courier New', 'Impact', 'Comic Sans MS', 'Trebuchet MS', 'Tahoma',
   'Roboto', 'Open Sans', 'Lato', 'Montserrat', 'Oswald', 'Raleway',
   'Poppins', 'Source Sans Pro', 'Ubuntu', 'Merriweather', 'Playfair Display',
@@ -79,14 +79,14 @@ export function DesignerPropertiesPanel({ selectedObject, canvas, onUpdate, cust
     autoFontSize: false,
     wordWrap: true,
   });
-  
+
   const [gradientConfig, setGradientConfig] = useState<GradientConfig | null>(null);
 
   useEffect(() => {
     if (!selectedObject) return;
 
     const bgColor = selectedObject.backgroundColor || selectedObject.textBackgroundColor || '';
-    
+
     setProperties({
       left: Math.round(selectedObject.left || 0),
       top: Math.round(selectedObject.top || 0),
@@ -125,8 +125,10 @@ export function DesignerPropertiesPanel({ selectedObject, canvas, onUpdate, cust
     });
   }, [selectedObject]);
 
+  const isLocked = !!selectedObject?.lockMovementX;
+
   const updateProperty = (key: string, value: any) => {
-    if (!selectedObject || !canvas) return;
+    if (!selectedObject || !canvas || isLocked) return;
 
     setProperties(prev => ({ ...prev, [key]: value }));
 
@@ -186,7 +188,7 @@ export function DesignerPropertiesPanel({ selectedObject, canvas, onUpdate, cust
 
   const isTextObject = selectedObject?.type === 'textbox' || selectedObject?.type === 'i-text';
   const isRect = selectedObject?.type === 'rect';
-  
+
   // Combine default fonts with custom fonts
   const allFonts = [...GOOGLE_FONTS, ...customFonts.filter(f => !GOOGLE_FONTS.includes(f))];
 
@@ -227,6 +229,7 @@ export function DesignerPropertiesPanel({ selectedObject, canvas, onUpdate, cust
                     value={properties.left}
                     onChange={(e) => updateProperty('left', parseFloat(e.target.value) || 0)}
                     className="h-6 text-xs"
+                    disabled={isLocked}
                   />
                 </div>
                 <div className="space-y-0.5">
@@ -236,6 +239,7 @@ export function DesignerPropertiesPanel({ selectedObject, canvas, onUpdate, cust
                     value={properties.top}
                     onChange={(e) => updateProperty('top', parseFloat(e.target.value) || 0)}
                     className="h-6 text-xs"
+                    disabled={isLocked}
                   />
                 </div>
               </div>
@@ -248,6 +252,7 @@ export function DesignerPropertiesPanel({ selectedObject, canvas, onUpdate, cust
                     value={properties.width}
                     onChange={(e) => updateProperty('width', parseFloat(e.target.value) || 0)}
                     className="h-6 text-xs"
+                    disabled={isLocked}
                   />
                 </div>
                 <div className="space-y-0.5">
@@ -299,7 +304,7 @@ export function DesignerPropertiesPanel({ selectedObject, canvas, onUpdate, cust
                     value={typeof properties.fill === 'string' ? properties.fill : '#000000'}
                     onChange={(e) => updateProperty('fill', e.target.value)}
                     className="w-10 h-8 p-1"
-                    disabled={properties.useGradient}
+                    disabled={isLocked}
                   />
                   <Input
                     type="text"
@@ -307,7 +312,7 @@ export function DesignerPropertiesPanel({ selectedObject, canvas, onUpdate, cust
                     onChange={(e) => updateProperty('fill', e.target.value)}
                     className="h-8 text-sm flex-1"
                     placeholder="#000000"
-                    disabled={properties.useGradient}
+                    disabled={isLocked}
                   />
                   <Popover>
                     <PopoverTrigger asChild>
@@ -325,13 +330,13 @@ export function DesignerPropertiesPanel({ selectedObject, canvas, onUpdate, cust
                             const width = selectedObject.width * (selectedObject.scaleX || 1);
                             const height = selectedObject.height * (selectedObject.scaleY || 1);
                             const fabricGradient = gradientConfigToFabric(config, width, height);
-                            
+
                             // Create gradient with proper colorStops format for Fabric.js v6
                             const colorStops = Object.entries(fabricGradient.colorStops).map(([offset, color]) => ({
                               offset: parseFloat(offset),
                               color: color as string,
                             }));
-                            
+
                             let gradient;
                             if (fabricGradient.type === 'radial') {
                               gradient = new Gradient<'radial'>({
@@ -346,7 +351,7 @@ export function DesignerPropertiesPanel({ selectedObject, canvas, onUpdate, cust
                                 colorStops,
                               });
                             }
-                            
+
                             selectedObject.set('fill', gradient);
                             canvas.requestRenderAll();
                             onUpdate();
@@ -636,7 +641,7 @@ export function DesignerPropertiesPanel({ selectedObject, canvas, onUpdate, cust
                     </Label>
                     <Switch
                       checked={properties.autoFontSize}
-                      onCheckedChange={(v) => updateProperty('autoFontSize', v)}
+                      disabled={isLocked}
                     />
                   </div>
                   <p className="text-[10px] text-muted-foreground -mt-2">

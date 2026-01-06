@@ -601,7 +601,9 @@ export function AdvancedTemplateDesigner({ editTemplate, onBack }: AdvancedTempl
   const updateObjectsList = useCallback(() => {
     const canvas = activeSide === 'front' ? fabricCanvas : backFabricCanvas;
     if (!canvas) return;
-    const canvasObjects = canvas.getObjects().filter((obj: any) => !obj.data?.isGuideline);
+    const canvasObjects = canvas.getObjects()
+      .filter((obj: any) => !obj.data?.isGuideline)
+      .sort((a, b) => (a.top || 0) - (b.top || 0));
     setObjects([...canvasObjects]);
   }, [activeSide, fabricCanvas, backFabricCanvas]);
 
@@ -657,6 +659,7 @@ export function AdvancedTemplateDesigner({ editTemplate, onBack }: AdvancedTempl
       }
 
       if (moved) {
+        if (activeObject.lockMovementX) return; // Don't allow move if locked
         e.preventDefault();
         activeObject.setCoords();
         activeCanvas.requestRenderAll();
@@ -1437,11 +1440,17 @@ export function AdvancedTemplateDesigner({ editTemplate, onBack }: AdvancedTempl
   const handleDelete = useCallback(() => {
     if (!activeCanvas) return;
     const activeObjects = activeCanvas.getActiveObjects();
-    activeObjects.forEach((obj) => activeCanvas.remove(obj));
+    activeObjects.forEach((obj: any) => {
+      if (!obj.lockMovementX) {
+        activeCanvas.remove(obj);
+      }
+    });
     activeCanvas.discardActiveObject();
     activeCanvas.requestRenderAll();
     setSelectedObject(null);
-  }, [activeCanvas]);
+    updateObjectsList();
+    saveToHistory();
+  }, [activeCanvas, updateObjectsList, saveToHistory]);
 
   const handleCopy = useCallback(() => {
     if (!selectedObject) return;
@@ -1593,131 +1602,123 @@ export function AdvancedTemplateDesigner({ editTemplate, onBack }: AdvancedTempl
 
   // Alignment functions
   const alignLeft = useCallback(() => {
-    if (!selectedObject || !activeCanvas) return;
+    if (!selectedObject || !activeCanvas || selectedObject.lockMovementX) return;
     selectedObject.set('left', 0);
     activeCanvas.requestRenderAll();
-  }, [selectedObject, activeCanvas]);
+    saveToHistory();
+  }, [selectedObject, activeCanvas, saveToHistory]);
 
   const alignCenter = useCallback(() => {
-    if (!selectedObject || !activeCanvas) return;
+    if (!selectedObject || !activeCanvas || selectedObject.lockMovementX) return;
     const canvasWidth = activeCanvas.width || 0;
     const objWidth = selectedObject.width * (selectedObject.scaleX || 1);
     selectedObject.set('left', (canvasWidth - objWidth) / 2);
     activeCanvas.requestRenderAll();
-  }, [selectedObject, activeCanvas]);
+    saveToHistory();
+  }, [selectedObject, activeCanvas, saveToHistory]);
 
   const alignRight = useCallback(() => {
-    if (!selectedObject || !activeCanvas) return;
+    if (!selectedObject || !activeCanvas || selectedObject.lockMovementX) return;
     const canvasWidth = activeCanvas.width || 0;
     const objWidth = selectedObject.width * (selectedObject.scaleX || 1);
     selectedObject.set('left', canvasWidth - objWidth);
     activeCanvas.requestRenderAll();
-  }, [selectedObject, activeCanvas]);
+    saveToHistory();
+  }, [selectedObject, activeCanvas, saveToHistory]);
 
   const alignTop = useCallback(() => {
-    if (!selectedObject || !activeCanvas) return;
+    if (!selectedObject || !activeCanvas || selectedObject.lockMovementX) return;
     selectedObject.set('top', 0);
     activeCanvas.requestRenderAll();
-  }, [selectedObject, activeCanvas]);
+    saveToHistory();
+  }, [selectedObject, activeCanvas, saveToHistory]);
 
   const alignMiddle = useCallback(() => {
-    if (!selectedObject || !activeCanvas) return;
+    if (!selectedObject || !activeCanvas || selectedObject.lockMovementX) return;
     const canvasHeight = activeCanvas.height || 0;
     const objHeight = selectedObject.height * (selectedObject.scaleY || 1);
     selectedObject.set('top', (canvasHeight - objHeight) / 2);
     activeCanvas.requestRenderAll();
-  }, [selectedObject, activeCanvas]);
+    saveToHistory();
+  }, [selectedObject, activeCanvas, saveToHistory]);
 
   const alignBottom = useCallback(() => {
-    if (!selectedObject || !activeCanvas) return;
+    if (!selectedObject || !activeCanvas || selectedObject.lockMovementX) return;
     const canvasHeight = activeCanvas.height || 0;
     const objHeight = selectedObject.height * (selectedObject.scaleY || 1);
     selectedObject.set('top', canvasHeight - objHeight);
     activeCanvas.requestRenderAll();
-  }, [selectedObject, activeCanvas]);
+    saveToHistory();
+  }, [selectedObject, activeCanvas, saveToHistory]);
 
   const flipHorizontal = useCallback(() => {
-    if (!selectedObject || !activeCanvas) return;
+    if (!selectedObject || !activeCanvas || selectedObject.lockMovementX) return;
     selectedObject.set('flipX', !selectedObject.flipX);
     activeCanvas.requestRenderAll();
-  }, [selectedObject, activeCanvas]);
+    saveToHistory();
+  }, [selectedObject, activeCanvas, saveToHistory]);
 
   const flipVertical = useCallback(() => {
-    if (!selectedObject || !activeCanvas) return;
+    if (!selectedObject || !activeCanvas || selectedObject.lockMovementX) return;
     selectedObject.set('flipY', !selectedObject.flipY);
     activeCanvas.requestRenderAll();
-  }, [selectedObject, activeCanvas]);
+    saveToHistory();
+  }, [selectedObject, activeCanvas, saveToHistory]);
 
   const bringForward = useCallback((obj?: any) => {
     const target = obj || selectedObject;
-    if (!target || !activeCanvas) return;
+    if (!target || !activeCanvas || target.lockMovementX) return;
 
-    const allObjects = activeCanvas.getObjects();
-    const index = allObjects.indexOf(target);
-    if (index === -1) return;
+    // In our vertically sorted list, bringing "forward" means moving UP visually
+    // which means swapping with the item above it in the sorted list.
+    const sortedObjects = activeCanvas.getObjects()
+      .filter((obj: any) => !obj.data?.isGuideline)
+      .sort((a, b) => (a.top || 0) - (b.top || 0));
 
-    // Find next non-guideline object above
-    let nextIndex = -1;
-    for (let i = index + 1; i < allObjects.length; i++) {
-      if (!allObjects[i].data?.isGuideline) {
-        nextIndex = i;
-        break;
-      }
-    }
+    const index = sortedObjects.indexOf(target);
+    if (index <= 0) return; // Already at the top
 
-    if (nextIndex !== -1) {
-      const neighbor = allObjects[nextIndex];
-      // Swap positions for vertical list management
-      const targetLeft = target.left;
-      const targetTop = target.top;
-      target.set({ left: neighbor.left, top: neighbor.top });
-      neighbor.set({ left: targetLeft, top: targetTop });
+    const neighbor = sortedObjects[index - 1];
+    if (neighbor.lockMovementX) return; // Cannot swap with a locked object
 
-      // Sync Z-order
-      activeCanvas.moveObjectTo(target, nextIndex);
+    // Swap vertical positions
+    const targetTop = target.top;
+    target.set('top', neighbor.top);
+    neighbor.set('top', targetTop);
 
-      target.setCoords();
-      neighbor.setCoords();
-      activeCanvas.requestRenderAll();
-      updateObjectsList();
-      saveToHistory();
-    }
+    target.setCoords();
+    neighbor.setCoords();
+    activeCanvas.requestRenderAll();
+    updateObjectsList();
+    saveToHistory();
   }, [selectedObject, activeCanvas, updateObjectsList, saveToHistory]);
 
   const sendBackward = useCallback((obj?: any) => {
     const target = obj || selectedObject;
-    if (!target || !activeCanvas) return;
+    if (!target || !activeCanvas || target.lockMovementX) return;
 
-    const allObjects = activeCanvas.getObjects();
-    const index = allObjects.indexOf(target);
-    if (index === -1) return;
+    // In our vertically sorted list, sending "backward" means moving DOWN visually
+    // which means swapping with the item below it in the sorted list.
+    const sortedObjects = activeCanvas.getObjects()
+      .filter((obj: any) => !obj.data?.isGuideline)
+      .sort((a, b) => (a.top || 0) - (b.top || 0));
 
-    // Find next non-guideline object below
-    let prevIndex = -1;
-    for (let i = index - 1; i >= 0; i--) {
-      if (!allObjects[i].data?.isGuideline) {
-        prevIndex = i;
-        break;
-      }
-    }
+    const index = sortedObjects.indexOf(target);
+    if (index === -1 || index === sortedObjects.length - 1) return; // Already at the bottom
 
-    if (prevIndex !== -1) {
-      const neighbor = allObjects[prevIndex];
-      // Swap positions for vertical list management
-      const targetLeft = target.left;
-      const targetTop = target.top;
-      target.set({ left: neighbor.left, top: neighbor.top });
-      neighbor.set({ left: targetLeft, top: targetTop });
+    const neighbor = sortedObjects[index + 1];
+    if (neighbor.lockMovementX) return; // Cannot swap with a locked object
 
-      // Sync Z-order
-      activeCanvas.moveObjectTo(target, prevIndex);
+    // Swap vertical positions
+    const targetTop = target.top;
+    target.set('top', neighbor.top);
+    neighbor.set('top', targetTop);
 
-      target.setCoords();
-      neighbor.setCoords();
-      activeCanvas.requestRenderAll();
-      updateObjectsList();
-      saveToHistory();
-    }
+    target.setCoords();
+    neighbor.setCoords();
+    activeCanvas.requestRenderAll();
+    updateObjectsList();
+    saveToHistory();
   }, [selectedObject, activeCanvas, updateObjectsList, saveToHistory]);
 
   const toggleVisibility = useCallback((obj: any) => {

@@ -2,10 +2,10 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import {
-  MousePointer2, Type, Square, Circle, Triangle, Star, Minus, 
-  Image, QrCode, Barcode, Undo2, Redo2, ZoomIn, ZoomOut, 
+  MousePointer2, Type, Square, Circle, Triangle, Star, Minus,
+  Image, QrCode, Barcode, Undo2, Redo2, ZoomIn, ZoomOut,
   Grid3X3, Save, Download, Trash2, Copy, Clipboard, Lock, Unlock,
-  AlignLeft, AlignCenter, AlignRight, AlignStartVertical, 
+  AlignLeft, AlignCenter, AlignRight, AlignStartVertical,
   AlignCenterVertical, AlignEndVertical, FlipHorizontal, FlipVertical,
   RotateCcw, Layers, Eye, EyeOff, Hexagon, Pentagon, ArrowRight
 } from 'lucide-react';
@@ -39,6 +39,7 @@ interface DesignerToolbarProps {
   onCopy: () => void;
   onPaste: () => void;
   hasSelection: boolean;
+  selectedObject?: any;
   onAlignLeft: () => void;
   onAlignCenter: () => void;
   onAlignRight: () => void;
@@ -160,7 +161,7 @@ export function DesignerToolbar({
       <div className="flex items-center gap-0.5">
         <ActionButton icon={Copy} label="Copy (Ctrl+C)" onClick={onCopy} disabled={!hasSelection} />
         <ActionButton icon={Clipboard} label="Paste (Ctrl+V)" onClick={onPaste} />
-        <ActionButton icon={Trash2} label="Delete (Del)" onClick={onDelete} disabled={!hasSelection} />
+        <ActionButton icon={Trash2} label="Delete (Del)" onClick={onDelete} disabled={!hasSelection || selectedObject?.lockMovementX} />
       </div>
 
       <Separator orientation="vertical" className="h-6 mx-1" />
@@ -168,7 +169,7 @@ export function DesignerToolbar({
       {/* Alignment */}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="ghost" size="icon" className="h-8 w-8" disabled={!hasSelection}>
+          <Button variant="ghost" size="icon" className="h-8 w-8" disabled={!hasSelection || selectedObject?.lockMovementX}>
             <AlignLeft className="h-4 w-4" />
           </Button>
         </DropdownMenuTrigger>
@@ -198,7 +199,7 @@ export function DesignerToolbar({
       {/* Transform */}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="ghost" size="icon" className="h-8 w-8" disabled={!hasSelection}>
+          <Button variant="ghost" size="icon" className="h-8 w-8" disabled={!hasSelection || selectedObject?.lockMovementX}>
             <FlipHorizontal className="h-4 w-4" />
           </Button>
         </DropdownMenuTrigger>
@@ -224,15 +225,15 @@ export function DesignerToolbar({
       {/* View Controls */}
       <div className="flex items-center gap-1">
         <KeyboardShortcutsPanel />
-        <ActionButton 
-          icon={Grid3X3} 
-          label="Toggle Grid" 
+        <ActionButton
+          icon={Grid3X3}
+          label="Toggle Grid"
           onClick={onToggleGrid}
         />
         <ActionButton icon={ZoomOut} label="Zoom Out" onClick={onZoomOut} />
         <Tooltip>
           <TooltipTrigger asChild>
-            <button 
+            <button
               onClick={onZoomReset}
               className="text-xs font-medium w-14 text-center py-1 px-2 rounded hover:bg-muted transition-colors cursor-pointer"
             >

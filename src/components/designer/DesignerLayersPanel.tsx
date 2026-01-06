@@ -62,8 +62,8 @@ export function DesignerLayersPanel({
     return `${type} ${index + 1}`;
   };
 
-  // Reverse to show top layer first
-  const reversedObjects = [...objects].reverse();
+  // No reverse needed, already sorted by top in parent
+  const sortedObjects = objects;
 
   return (
     <Card className="h-48 rounded-none border-t">
@@ -77,13 +77,13 @@ export function DesignerLayersPanel({
       </CardHeader>
       <ScrollArea className="h-[calc(100%-40px)]">
         <CardContent className="p-1 space-y-0.5">
-          {reversedObjects.length === 0 ? (
+          {sortedObjects.length === 0 ? (
             <div className="text-xs text-muted-foreground text-center py-4">
               No objects on canvas
             </div>
           ) : (
-            reversedObjects.map((obj, idx) => {
-              const originalIndex = objects.length - 1 - idx;
+            sortedObjects.map((obj, idx) => {
+              const originalIndex = idx;
               const Icon = getObjectIcon(obj.type);
               const isSelected = selectedObject === obj;
               const isVisible = obj.visible !== false;
@@ -110,10 +110,10 @@ export function DesignerLayersPanel({
                       size="icon"
                       className="h-5 w-5"
                       title="Move up (bring forward)"
-                      disabled={idx === 0} // Already at top
+                      disabled={idx === 0 || obj.lockMovementX} // Already at top or locked
                       onClick={(e) => {
                         e.stopPropagation();
-                        // In the reversed list, moving up visually means bringing forward
+                        // In our sorted list, moving up means moving up
                         onMoveUp(obj);
                       }}
                     >
@@ -124,10 +124,10 @@ export function DesignerLayersPanel({
                       size="icon"
                       className="h-5 w-5"
                       title="Move down (send backward)"
-                      disabled={idx === reversedObjects.length - 1} // Already at bottom
+                      disabled={idx === sortedObjects.length - 1 || obj.lockMovementX} // Already at bottom or locked
                       onClick={(e) => {
                         e.stopPropagation();
-                        // In the reversed list, moving down visually means sending backward
+                        // In our sorted list, moving down means moving down
                         onMoveDown(obj);
                       }}
                     >

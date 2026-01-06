@@ -10,7 +10,7 @@ import {
 } from 'lucide-react';
 
 const FONTS = [
-  'Arial', 'Helvetica', 'Times New Roman', 'Georgia', 'Verdana', 
+  'Arial', 'Helvetica', 'Times New Roman', 'Georgia', 'Verdana',
   'Roboto', 'Open Sans', 'Lato', 'Montserrat', 'Poppins',
   'Playfair Display', 'Nunito', 'Inter', 'DM Sans'
 ];
@@ -45,7 +45,7 @@ export function DesignerTextToolbar({ selectedObject, canvas, onUpdate, customFo
 
   useEffect(() => {
     if (!selectedObject || !isTextObject) return;
-    
+
     setFontSize(selectedObject.fontSize || 16);
     setFontFamily(selectedObject.fontFamily || 'Arial');
     setFontWeight(selectedObject.fontWeight || 'normal');
@@ -57,12 +57,14 @@ export function DesignerTextToolbar({ selectedObject, canvas, onUpdate, customFo
     setTextCase(selectedObject.data?.textCase || 'none');
   }, [selectedObject, isTextObject]);
 
+  const isLocked = selectedObject?.lockMovementX;
+
   const updateProperty = (key: string, value: any) => {
-    if (!selectedObject || !canvas) return;
+    if (!selectedObject || !canvas || isLocked) return;
     selectedObject.set(key, value);
     canvas.requestRenderAll();
     onUpdate();
-    
+
     // Notify parent about text settings changes for persistence
     if (key === 'fontSize' && onTextSettingsChange) {
       onTextSettingsChange({ fontSize: value });
@@ -74,17 +76,17 @@ export function DesignerTextToolbar({ selectedObject, canvas, onUpdate, customFo
   };
 
   const updateTextCase = (newCase: 'none' | 'uppercase' | 'lowercase' | 'capitalize') => {
-    if (!selectedObject || !canvas) return;
-    
+    if (!selectedObject || !canvas || isLocked) return;
+
     setTextCase(newCase);
-    
+
     // Store in data for PDF generation
     if (!selectedObject.data) selectedObject.data = {};
     selectedObject.data.textCase = newCase;
-    
+
     canvas.requestRenderAll();
     onUpdate();
-    
+
     // Notify parent about text case change
     if (onTextSettingsChange) {
       onTextSettingsChange({ textCase: newCase });
@@ -104,6 +106,7 @@ export function DesignerTextToolbar({ selectedObject, canvas, onUpdate, customFo
           setFontFamily(v);
           updateProperty('fontFamily', v);
         }}
+        disabled={isLocked}
       >
         <SelectTrigger className="h-7 w-28 text-xs">
           <SelectValue />
@@ -132,6 +135,7 @@ export function DesignerTextToolbar({ selectedObject, canvas, onUpdate, customFo
       <Input
         type="number"
         value={fontSize}
+        disabled={isLocked}
         onChange={(e) => {
           const val = parseInt(e.target.value) || 16;
           setFontSize(val);
@@ -156,6 +160,7 @@ export function DesignerTextToolbar({ selectedObject, canvas, onUpdate, customFo
                 updateProperty('fill', e.target.value);
               }}
               className="h-7 w-7 p-0.5 cursor-pointer"
+              disabled={isLocked}
             />
           </div>
         </TooltipTrigger>
@@ -170,7 +175,7 @@ export function DesignerTextToolbar({ selectedObject, canvas, onUpdate, customFo
           <Button
             variant={fontWeight === 'bold' ? 'default' : 'ghost'}
             size="icon"
-            className="h-7 w-7"
+            disabled={isLocked}
             onClick={() => {
               const newWeight = fontWeight === 'bold' ? 'normal' : 'bold';
               setFontWeight(newWeight);
@@ -189,7 +194,7 @@ export function DesignerTextToolbar({ selectedObject, canvas, onUpdate, customFo
           <Button
             variant={fontStyle === 'italic' ? 'default' : 'ghost'}
             size="icon"
-            className="h-7 w-7"
+            disabled={isLocked}
             onClick={() => {
               const newStyle = fontStyle === 'italic' ? 'normal' : 'italic';
               setFontStyle(newStyle);
@@ -208,7 +213,7 @@ export function DesignerTextToolbar({ selectedObject, canvas, onUpdate, customFo
           <Button
             variant={underline ? 'default' : 'ghost'}
             size="icon"
-            className="h-7 w-7"
+            disabled={isLocked}
             onClick={() => {
               const newVal = !underline;
               setUnderline(newVal);
@@ -227,7 +232,7 @@ export function DesignerTextToolbar({ selectedObject, canvas, onUpdate, customFo
           <Button
             variant={linethrough ? 'default' : 'ghost'}
             size="icon"
-            className="h-7 w-7"
+            disabled={isLocked}
             onClick={() => {
               const newVal = !linethrough;
               setLinethrough(newVal);
@@ -248,7 +253,7 @@ export function DesignerTextToolbar({ selectedObject, canvas, onUpdate, customFo
           <Button
             variant={textCase === 'uppercase' ? 'default' : 'ghost'}
             size="icon"
-            className="h-7 w-7"
+            disabled={isLocked}
             onClick={() => updateTextCase(textCase === 'uppercase' ? 'none' : 'uppercase')}
           >
             <CaseUpper className="h-3.5 w-3.5" />
@@ -262,7 +267,7 @@ export function DesignerTextToolbar({ selectedObject, canvas, onUpdate, customFo
           <Button
             variant={textCase === 'lowercase' ? 'default' : 'ghost'}
             size="icon"
-            className="h-7 w-7"
+            disabled={isLocked}
             onClick={() => updateTextCase(textCase === 'lowercase' ? 'none' : 'lowercase')}
           >
             <CaseLower className="h-3.5 w-3.5" />
@@ -276,7 +281,7 @@ export function DesignerTextToolbar({ selectedObject, canvas, onUpdate, customFo
           <Button
             variant={textCase === 'capitalize' ? 'default' : 'ghost'}
             size="icon"
-            className="h-7 w-7"
+            disabled={isLocked}
             onClick={() => updateTextCase(textCase === 'capitalize' ? 'none' : 'capitalize')}
           >
             <Type className="h-3.5 w-3.5" />
@@ -293,7 +298,7 @@ export function DesignerTextToolbar({ selectedObject, canvas, onUpdate, customFo
           <Button
             variant={textAlign === 'left' ? 'default' : 'ghost'}
             size="icon"
-            className="h-7 w-7"
+            disabled={isLocked}
             onClick={() => {
               setTextAlign('left');
               updateProperty('textAlign', 'left');
@@ -310,7 +315,7 @@ export function DesignerTextToolbar({ selectedObject, canvas, onUpdate, customFo
           <Button
             variant={textAlign === 'center' ? 'default' : 'ghost'}
             size="icon"
-            className="h-7 w-7"
+            disabled={isLocked}
             onClick={() => {
               setTextAlign('center');
               updateProperty('textAlign', 'center');
@@ -327,7 +332,7 @@ export function DesignerTextToolbar({ selectedObject, canvas, onUpdate, customFo
           <Button
             variant={textAlign === 'right' ? 'default' : 'ghost'}
             size="icon"
-            className="h-7 w-7"
+            disabled={isLocked}
             onClick={() => {
               setTextAlign('right');
               updateProperty('textAlign', 'right');
